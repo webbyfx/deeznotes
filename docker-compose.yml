@@ -1,0 +1,17 @@
+services:
+  deeznotes:
+    build: .
+    container_name: deeznotes
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - deeznotes-data:/app/instance
+      - deeznotes-uploads:/app/static/uploads
+    environment:
+      - SECRET_KEY=change-this-to-a-secure-random-string
+      - DATABASE_URL=sqlite:////app/instance/deeznotes.db
+
+volumes:
+  deeznotes-data:
+  deeznotes-uploads:

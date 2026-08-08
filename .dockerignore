@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+*.db
+instance/
+.git
+.gitignore
+*.md
+.venv
+venv
+.env

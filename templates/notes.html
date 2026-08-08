@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Notes — DeezNotes{% endblock %}
+
+{% block head %}
+<!-- Quill.js WYSIWYG Editor -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<!-- Highlight.js for code syntax highlighting -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/atom-one-dark.min.css">
+<!-- JetBrains Mono for code blocks -->
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- SortableJS for drag-reorder -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<!-- Toast container -->
+
+<div id="toast-container"></div>
+
+<!-- Confirm dialog overlay -->
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-dialog">
+        <p id="confirm-message">Are you sure?</p>
+        <div class="confirm-actions">
+            <button class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+            <button class="btn btn-danger" id="confirm-ok">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Category modal -->
+<div class="modal-overlay" id="category-modal">
+    <div class="modal-dialog">
+        <h3 id="category-modal-title">New Category</h3>
+        <div class="form-group">
+            <label for="cat-name-input">Name</label>
+            <input type="text" id="cat-name-input" placeholder="Category name" maxlength="100">
+        </div>
+        <div class="form-group">
+            <label>Icon</label>
+            <div class="emoji-picker" id="emoji-picker">
+                <span class="emoji-option" data-emoji="📁">📁</span>
+                <span class="emoji-option" data-emoji="📝">📝</span>
+                <span class="emoji-option" data-emoji="💡">💡</span>
+                <span class="emoji-option" data-emoji="📚">📚</span>
+                <span class="emoji-option" data-emoji="🎯">🎯</span>
+                <span class="emoji-option" data-emoji="🔬">🔬</span>
+                <span class="emoji-option" data-emoji="💻">💻</span>
+                <span class="emoji-option" data-emoji="🎨">🎨</span>
+                <span class="emoji-option" data-emoji="🏠">🏠</span>
+                <span class="emoji-option" data-emoji="💰">💰</span>
+                <span class="emoji-option" data-emoji="🏋️">🏋️</span>
+                <span class="emoji-option" data-emoji="🍳">🍳</span>
+                <span class="emoji-option" data-emoji="✈️">✈️</span>
+                <span class="emoji-option" data-emoji="🎵">🎵</span>
+                <span class="emoji-option" data-emoji="📷">📷</span>
+                <span class="emoji-option" data-emoji="⭐">⭐</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Color</label>
+            <div class="color-picker" id="color-picker">
+                <span class="color-option" data-color="#7c3aed" style="background:#7c3aed"></span>
+                <span class="color-option" data-color="#2563eb" style="background:#2563eb"></span>
+                <span class="color-option" data-color="#0891b2" style="background:#0891b2"></span>
+                <span class="color-option" data-color="#059669" style="background:#059669"></span>
+                <span class="color-option" data-color="#d97706" style="background:#d97706"></span>
+                <span class="color-option" data-color="#dc2626" style="background:#dc2626"></span>
+                <span class="color-option" data-color="#db2777" style="background:#db2777"></span>
+                <span class="color-option" data-color="#6366f1" style="background:#6366f1"></span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="category-modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="category-modal-save">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="app-layout">
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="logo-icon">📝</span>
+                <span class="brand-text">DeezNotes</span>
+            </div>
+            <button class="btn-icon sidebar-close" id="sidebar-close" title="Close sidebar">✕</button>
+        </div>
+
+        <!-- Search -->
+        <div class="sidebar-search">
+            <input type="text" id="search-input" placeholder="Search notes…" autocomplete="off">
+            <span class="search-icon">🔍</span>
+        </div>
+
+        <!-- Quick filters -->
+        <div class="sidebar-section">
+            <div class="sidebar-group" id="group-all">
+                <div class="sidebar-item active" data-filter="all" id="filter-all">
+                    <div class="sidebar-item-content">
+                        <span class="sidebar-item-icon">📋</span>
+                        <span class="sidebar-item-text">All Notes</span>
+                    </div>
+                </div>
+                <div class="sidebar-notes-container" id="notes-all"></div>
+            </div>
+            
+            <div class="sidebar-group collapsed" id="group-uncategorized">
+                <div class="sidebar-item" data-filter="uncategorized" id="filter-uncategorized">
+                    <div class="sidebar-item-content">
+                        <span class="sidebar-item-icon">📄</span>
+                        <span class="sidebar-item-text">Uncategorized</span>
+                    </div>
+                    <span class="sidebar-item-actions">
+                        <button class="btn-icon new-note-btn" data-category="null" title="New Uncategorized Note">＋</button>
+                    </span>
+                </div>
+                <div class="sidebar-notes-container" id="notes-uncategorized"></div>
+            </div>
+
+            <div class="sidebar-group collapsed" id="group-archived">
+                <div class="sidebar-item" data-filter="archived" id="filter-archived">
+                    <div class="sidebar-item-content">
+                        <span class="sidebar-item-icon">🗄️</span>
+                        <span class="sidebar-item-text">Archived</span>
+                    </div>
+                </div>
+                <div class="sidebar-notes-container" id="notes-archived"></div>
+            </div>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Categories -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <span>Categories</span>
+                <button class="btn-icon" id="add-category-btn" title="New category">＋</button>
+            </div>
+            <div id="categories-list" class="categories-list"></div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar">{{ username[0]|upper }}</span>
+                <span class="user-name">{{ username }}</span>
+            </div>
+            <div class="sidebar-footer-actions">
+                <button class="btn-icon" id="theme-toggle" title="Toggle theme">🌙</button>
+                <a href="{{ url_for('logout') }}" class="btn-icon" title="Logout" id="logout-btn">🚪</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ===== Main content ===== -->
+    <main class="main-content" id="main-content">
+        <!-- Top bar (mobile) -->
+        <div class="topbar">
+            <button class="btn-icon" id="sidebar-toggle" title="Toggle sidebar">☰</button>
+            <h2 class="topbar-title" id="topbar-title">All Notes</h2>
+        </div>
+
+        <!-- Editor panel -->
+        <div class="editor-panel" id="editor-panel" style="display:none;">
+            <div class="editor-topbar">
+                <button class="btn-icon" id="editor-back" title="Back to list">←</button>
+                <input type="text" class="editor-title-input" id="editor-title" placeholder="Untitled Note">
+                <div class="editor-actions">
+                    <button class="btn-icon" id="btn-pin" title="Pin note">📌</button>
+                    <button class="btn-icon" id="btn-archive" title="Archive note">🗄️</button>
+                    <button class="btn-icon" id="btn-delete-note" title="Delete note">🗑️</button>
+                </div>
+            </div>
+            <div class="editor-meta" id="editor-meta">
+                <span id="editor-date"></span>
+                <span class="editor-meta-sep">·</span>
+                <span id="editor-wordcount">0 words</span>
+                <span class="editor-save-status" id="editor-save-status">Saved</span>
+            </div>
+            <div id="quill-editor"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Highlight.js (must load before Quill for syntax module) -->
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+<!-- Quill.js -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=1.2"></script>
+{% endblock %}

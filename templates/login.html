@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Login — DeezNotes{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+    <div class="auth-bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="auth-card">
+        <div class="auth-logo">
+            <span class="logo-icon">📝</span>
+            <h1>DeezNotes</h1>
+            <p class="auth-subtitle">Your thoughts, beautifully organized.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form" id="login-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username"
+                       required autofocus autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password"
+                       required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+                Sign In
+            </button>
+        </form>
+        <p class="auth-switch">
+            Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
