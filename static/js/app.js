@@ -987,13 +987,13 @@
 
     // ===== Init =====
 
-    function init() {
+    async function init() {
         initTheme();
         initQuill();
         bindEvents();
         initKeyboardShortcuts();
-        loadCategories();
-        loadNotes();
+        await loadCategories();
+        await loadNotes();
     }
 
     if (document.readyState === 'loading') {
