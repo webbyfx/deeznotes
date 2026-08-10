@@ -731,11 +731,93 @@ input[type="password"]::placeholder {
     color: var(--success);
 }
 
+/* Editor Workspace (Editor + TOC) */
+.editor-workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.editor-main-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Table of Contents Panel */
+.editor-toc-panel {
+    width: 260px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.toc-header {
+    padding: 16px 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary);
+    z-index: 1;
+}
+
+.toc-content {
+    padding: 12px;
+}
+
+.toc-item {
+    display: block;
+    padding: 6px 8px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.toc-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.toc-item.active {
+    color: var(--accent-light);
+    background: var(--accent-glow);
+    font-weight: 500;
+}
+
+.toc-h1 { margin-left: 0; font-weight: 500; }
+.toc-h2 { margin-left: 12px; }
+.toc-h3 { margin-left: 24px; font-size: 0.8rem; }
+
+/* Mobile view: hide TOC */
+@media (max-width: 900px) {
+    .editor-toc-panel {
+        display: none;
+    }
+}
+
 /* Quill overrides for our theme */
 #quill-editor {
     flex: 1;
     overflow-y: auto;
     border: none;
+    min-width: 0;
 }
 .ql-toolbar.ql-snow {
     border: none !important;
@@ -1316,5 +1398,172 @@ input[type="password"]::placeholder {
     height: 20px;
     background: var(--border-strong);
     margin: 0 4px;
+}
+
+/* ====================================================================
+   FILE ATTACHMENT CARDS
+   ==================================================================== */
+
+/* Drop zone overlay on the editor */
+.file-drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 400;
+    background: rgba(59, 130, 246, 0.08);
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-md);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    backdrop-filter: blur(2px);
+    animation: dropZonePulse 1.5s ease-in-out infinite;
+}
+.file-drop-overlay.active {
+    display: flex;
+}
+.file-drop-overlay-inner {
+    text-align: center;
+    color: var(--accent-light);
+    font-weight: 600;
+    font-size: 1rem;
+}
+.file-drop-overlay-inner .drop-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 8px;
+    animation: dropBounce 1s ease-in-out infinite;
+}
+
+@keyframes dropZonePulse {
+    0%, 100% { background: rgba(59, 130, 246, 0.06); }
+    50% { background: rgba(59, 130, 246, 0.12); }
+}
+@keyframes dropBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+/* Attachment card embedded in the note */
+.file-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    margin: 6px 2px;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+    color: inherit;
+    max-width: 340px;
+    user-select: none;
+}
+.file-attachment:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow), var(--shadow-sm);
+    transform: translateY(-1px);
+}
+.file-attachment:active {
+    transform: translateY(0);
+}
+
+.file-attachment-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    background: var(--accent-glow);
+    color: var(--accent-light);
+    transition: all var(--transition);
+}
+.file-attachment:hover .file-attachment-icon {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Extension-based icon colors */
+.file-attachment-icon.ext-pdf { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.file-attachment:hover .file-attachment-icon.ext-pdf { background: #ef4444; color: #fff; }
+.file-attachment-icon.ext-doc { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.file-attachment:hover .file-attachment-icon.ext-doc { background: #3b82f6; color: #fff; }
+.file-attachment-icon.ext-xls { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.file-attachment:hover .file-attachment-icon.ext-xls { background: #22c55e; color: #fff; }
+.file-attachment-icon.ext-ppt { background: rgba(249, 115, 22, 0.12); color: #f97316; }
+.file-attachment:hover .file-attachment-icon.ext-ppt { background: #f97316; color: #fff; }
+.file-attachment-icon.ext-zip { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+.file-attachment:hover .file-attachment-icon.ext-zip { background: #a855f7; color: #fff; }
+.file-attachment-icon.ext-media { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
+.file-attachment:hover .file-attachment-icon.ext-media { background: #ec4899; color: #fff; }
+.file-attachment-icon.ext-code { background: rgba(6, 182, 212, 0.12); color: #06b6d4; }
+.file-attachment:hover .file-attachment-icon.ext-code { background: #06b6d4; color: #fff; }
+.file-attachment-icon.ext-text { background: rgba(161, 161, 170, 0.12); color: #a1a1aa; }
+.file-attachment:hover .file-attachment-icon.ext-text { background: #71717a; color: #fff; }
+
+.file-attachment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+.file-attachment-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-attachment-meta {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.file-attachment-meta .ext-badge {
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--text-tertiary);
+}
+
+.file-attachment-download {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    transition: all var(--transition);
+}
+.file-attachment:hover .file-attachment-download {
+    background: var(--accent-glow);
+    color: var(--accent-light);
+}
+
+/* Upload progress indicator */
+.file-attachment.uploading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+.file-attachment.uploading .file-attachment-icon {
+    animation: uploadSpin 1s linear infinite;
+}
+@keyframes uploadSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 

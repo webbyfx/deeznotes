@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, jsonify, flash
+    session, jsonify, flash, send_from_directory
 )
 from werkzeug.utils import secure_filename
 from config import Config
@@ -321,13 +321,31 @@ def api_upload():
     if not allowed_file(f.filename):
         return jsonify({'error': 'File type not allowed'}), 400
 
+    original_name = secure_filename(f.filename) or 'unnamed'
     ext = f.filename.rsplit('.', 1)[1].lower()
     filename = f'{uuid.uuid4().hex}.{ext}'
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     f.save(filepath)
 
+    file_size = os.path.getsize(filepath)
     url = url_for('static', filename=f'uploads/{filename}')
-    return jsonify({'url': url}), 201
+    return jsonify({
+        'url': url,
+        'original_name': original_name,
+        'size': file_size,
+    }), 201
+
+
+@app.route('/api/download/<path:filename>')
+@login_required
+def api_download(filename):
+    """Serve an uploaded file as a download with its original name."""
+    original_name = request.args.get('name', filename)
+    return send_from_directory(
+        app.config['UPLOAD_FOLDER'], filename,
+        as_attachment=True,
+        download_name=original_name,
+    )
 
 
 # ---------------------------------------------------------------------------

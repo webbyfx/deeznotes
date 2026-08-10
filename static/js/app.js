@@ -46,6 +46,7 @@
         btnDeleteNote: $('#btn-delete-note'),
         themeToggle: $('#theme-toggle'),
         topbarTitle: $('#topbar-title'),
+        tocContainer: $('#toc-container'),
         // Category modal
         categoryModal: $('#category-modal'),
         categoryModalTitle: $('#category-modal-title'),
@@ -109,6 +110,40 @@
         const text = stripHtml(html).trim();
         if (!text) return 0;
         return text.split(/\s+/).length;
+    }
+
+    let tocTimeout = null;
+    function updateTOC() {
+        if (!dom.tocContainer || !state.quill) return;
+        
+        // Debounce slightly to avoid slowing down fast typing
+        clearTimeout(tocTimeout);
+        tocTimeout = setTimeout(() => {
+            const headers = Array.from(state.quill.root.querySelectorAll('h1, h2, h3'));
+            dom.tocContainer.innerHTML = '';
+            
+            if (headers.length === 0) {
+                dom.tocContainer.innerHTML = '<div class="toc-item" style="opacity: 0.5;">No headings</div>';
+                return;
+            }
+
+            headers.forEach((header, index) => {
+                const level = header.tagName.toLowerCase(); // h1, h2, h3
+                if (!header.id) header.id = 'heading-' + index;
+
+                const item = document.createElement('a');
+                item.href = '#' + header.id;
+                item.className = 'toc-item toc-' + level;
+                item.textContent = header.textContent || 'Untitled Heading';
+                
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+
+                dom.tocContainer.appendChild(item);
+            });
+        }, 300);
     }
 
     let confirmResolve = null;
@@ -372,6 +407,7 @@
         dom.editorDate.textContent = timeAgo(note.updated_at);
         dom.editorWordcount.textContent = wordCount(note.content) + ' words';
         updateSaveStatus('saved');
+        updateTOC();
 
         // Pin button state
         dom.btnPin.style.opacity = note.is_pinned ? '1' : '0.5';
@@ -593,6 +629,7 @@
         state.quill.on('text-change', () => {
             if (state.activeNoteId) {
                 dom.editorWordcount.textContent = wordCount(state.quill.root.innerHTML) + ' words';
+                updateTOC();
                 scheduleSave();
             }
         });
@@ -646,6 +683,152 @@
         }
     }
 
+
+
+    // ===== File Attachment Helpers =====
+
+    function getFileIcon(ext) {
+        const icons = {
+            pdf: '📕', doc: '📘', docx: '📘',
+            xls: '📗', xlsx: '📗', csv: '📗',
+            ppt: '📙', pptx: '📙',
+            zip: '📦', rar: '📦', '7z': '📦', tar: '📦', gz: '📦',
+            mp3: '🎵', wav: '🎵',
+            mp4: '🎬', avi: '🎬', mov: '🎬',
+            py: '🐍', js: '⚡', ts: '⚡', html: '🌐', css: '🎨',
+            json: '📋', xml: '📋', yaml: '📋', yml: '📋',
+            md: '📝', txt: '📄',
+            sh: '⚙️', bat: '⚙️',
+            exe: '💿', dmg: '💿', iso: '💿', apk: '💿', deb: '💿', rpm: '💿',
+        };
+        return icons[ext] || '📎';
+    }
+
+    function getFileIconClass(ext) {
+        if (['pdf'].includes(ext)) return 'ext-pdf';
+        if (['doc', 'docx'].includes(ext)) return 'ext-doc';
+        if (['xls', 'xlsx', 'csv'].includes(ext)) return 'ext-xls';
+        if (['ppt', 'pptx'].includes(ext)) return 'ext-ppt';
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'ext-zip';
+        if (['mp3', 'wav', 'mp4', 'avi', 'mov'].includes(ext)) return 'ext-media';
+        if (['py', 'js', 'ts', 'html', 'css', 'json', 'xml', 'yaml', 'yml', 'sh', 'bat'].includes(ext)) return 'ext-code';
+        if (['txt', 'md'].includes(ext)) return 'ext-text';
+        return '';
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1073741824).toFixed(1) + ' GB';
+    }
+
+    function isImageFile(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+    }
+
+    async function uploadFileAttachment(file) {
+        const formData = new FormData();
+        formData.append('file', file, file.name);
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!res.ok) {
+                toast(data.error || 'Upload failed', 'error');
+                return;
+            }
+            const ext = file.name.split('.').pop().toLowerCase();
+            const icon = getFileIcon(ext);
+            const iconClass = getFileIconClass(ext);
+            const size = formatFileSize(data.size || file.size);
+            const originalName = data.original_name || file.name;
+            const storedFilename = data.url.split('/').pop();
+            const downloadUrl = `/api/download/${storedFilename}?name=${encodeURIComponent(originalName)}`;
+
+            // Build the attachment HTML
+            const attachmentHtml = `<a class="file-attachment" href="${downloadUrl}" target="_blank" rel="noopener" contenteditable="false" data-filename="${escHtml(originalName)}" data-url="${escHtml(data.url)}">` +
+                `<span class="file-attachment-icon ${iconClass}">${icon}</span>` +
+                `<span class="file-attachment-info">` +
+                    `<span class="file-attachment-name">${escHtml(originalName)}</span>` +
+                    `<span class="file-attachment-meta"><span class="ext-badge">${ext}</span> · ${size}</span>` +
+                `</span>` +
+                `<span class="file-attachment-download">⬇</span>` +
+            `</a>`;
+
+            // Insert at cursor in Quill
+            const range = state.quill.getSelection(true);
+            state.quill.clipboard.dangerouslyPasteHTML(range.index, attachmentHtml + '<br>');
+            state.quill.setSelection(range.index + 2);
+            toast('File attached', 'success');
+            scheduleSave();
+        } catch (e) {
+            toast('File upload failed', 'error');
+        }
+    }
+
+    // ===== Drag & Drop File Handler =====
+
+    function initFileDragDrop() {
+        const editorPanel = document.getElementById('editor-panel');
+        if (!editorPanel) return;
+
+        // Create drop overlay
+        const dropOverlay = document.createElement('div');
+        dropOverlay.className = 'file-drop-overlay';
+        dropOverlay.innerHTML = `<div class="file-drop-overlay-inner"><span class="drop-icon">📂</span>Drop files to attach</div>`;
+        editorPanel.style.position = 'relative';
+        editorPanel.appendChild(dropOverlay);
+
+        let dragCounter = 0;
+
+        editorPanel.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            if (state.activeNoteId) {
+                dropOverlay.classList.add('active');
+            }
+        });
+
+        editorPanel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        editorPanel.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                dropOverlay.classList.remove('active');
+            }
+        });
+
+        editorPanel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter = 0;
+            dropOverlay.classList.remove('active');
+
+            if (!state.activeNoteId) {
+                toast('Open a note first', 'error');
+                return;
+            }
+
+            const files = e.dataTransfer?.files;
+            if (!files || files.length === 0) return;
+
+            for (const file of files) {
+                if (isImageFile(file.name)) {
+                    uploadImage(file);
+                } else {
+                    uploadFileAttachment(file);
+                }
+            }
+        });
+    }
 
 
     // ===== Image Resize & Reposition =====
@@ -991,6 +1174,7 @@
         initTheme();
         initQuill();
         bindEvents();
+        initFileDragDrop();
         initKeyboardShortcuts();
         await loadCategories();
         await loadNotes();
