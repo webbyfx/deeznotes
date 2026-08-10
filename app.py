@@ -25,6 +25,10 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    @app.context_processor
+    def inject_version():
+        return dict(app_version=app.config.get('APP_VERSION', '1.0.0'))
+
     return app
 
 
