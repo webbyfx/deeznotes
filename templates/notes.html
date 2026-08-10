@@ -161,6 +161,53 @@
             <h2 class="topbar-title" id="topbar-title">All Notes</h2>
         </div>
 
+        <!-- Overview panel -->
+        <div class="overview-panel" id="overview-panel">
+            <div class="overview-header">
+                <h1>Overview</h1>
+                <p>Welcome back, <span id="overview-username">{{ username }}</span>!</p>
+            </div>
+            
+            <div class="overview-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--accent);">📝</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-total-notes">0</span>
+                        <span class="stat-label">Total Notes</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--success);">📁</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-total-categories">0</span>
+                        <span class="stat-label">Categories</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--warning);">📌</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-pinned-notes">0</span>
+                        <span class="stat-label">Pinned Notes</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--danger);">🗄️</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-archived-notes">0</span>
+                        <span class="stat-label">Archived Notes</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overview-sections">
+                <div class="overview-section">
+                    <h3>Categories Breakdown</h3>
+                    <div class="category-stats-list" id="category-stats-list">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Editor panel -->
         <div class="editor-panel" id="editor-panel" style="display:none;">
             <div class="editor-topbar">

@@ -32,6 +32,12 @@
         noteListEmpty: $('#note-list-empty'),
         noteListPanel: $('#note-list-panel'),
         noteListTitle: $('#note-list-title'),
+        overviewPanel: $('#overview-panel'),
+        statTotalNotes: $('#stat-total-notes'),
+        statTotalCategories: $('#stat-total-categories'),
+        statPinnedNotes: $('#stat-pinned-notes'),
+        statArchivedNotes: $('#stat-archived-notes'),
+        categoryStatsList: $('#category-stats-list'),
         editorPanel: $('#editor-panel'),
         editorTitle: $('#editor-title'),
         editorDate: $('#editor-date'),
@@ -359,6 +365,7 @@
         let allCount = 0;
         let uncategorizedCount = 0;
         let archivedCount = 0;
+        let pinnedCount = 0;
         const catCounts = {};
 
         state.notes.forEach((note) => {
@@ -368,6 +375,8 @@
             const allNotesContainer = document.getElementById('notes-all');
             if (allNotesContainer) allNotesContainer.appendChild(elAll);
             allCount++;
+            
+            if (note.is_pinned) pinnedCount++;
 
             if (note.is_archived) {
                 const archivedContainer = document.getElementById('notes-archived');
@@ -390,7 +399,37 @@
             }
         });
 
-        // Removed counts update
+        // Update Overview Stats
+        if (dom.statTotalNotes) {
+            dom.statTotalNotes.textContent = allCount;
+            dom.statTotalCategories.textContent = state.categories.length;
+            dom.statPinnedNotes.textContent = pinnedCount;
+            dom.statArchivedNotes.textContent = archivedCount;
+            
+            dom.categoryStatsList.innerHTML = '';
+            state.categories.forEach(cat => {
+                const count = catCounts[cat.id] || 0;
+                const catEl = document.createElement('div');
+                catEl.className = 'category-stat-item';
+                catEl.innerHTML = `
+                    <div class="category-stat-name">
+                        <span style="color: ${cat.color};">${cat.icon}</span>
+                        ${escHtml(cat.name)}
+                    </div>
+                    <div class="category-stat-count">${count}</div>
+                `;
+                dom.categoryStatsList.appendChild(catEl);
+            });
+            const uncatEl = document.createElement('div');
+            uncatEl.className = 'category-stat-item';
+            uncatEl.innerHTML = `
+                <div class="category-stat-name">
+                    <span>📄</span> Uncategorized
+                </div>
+                <div class="category-stat-count">${uncategorizedCount}</div>
+            `;
+            dom.categoryStatsList.appendChild(uncatEl);
+        }
     }
 
     async function openNote(noteId) {
@@ -414,6 +453,7 @@
         dom.btnArchive.style.opacity = note.is_archived ? '1' : '0.5';
 
         // Show editor
+        if (dom.overviewPanel) dom.overviewPanel.style.display = 'none';
         dom.editorPanel.style.display = 'flex';
         dom.mainContent.classList.add('editor-active');
 
@@ -532,6 +572,7 @@
     function closeEditor() {
         state.activeNoteId = null;
         dom.editorPanel.style.display = 'none';
+        if (dom.overviewPanel) dom.overviewPanel.style.display = 'block';
         dom.mainContent.classList.remove('editor-active');
         $$('.sidebar-note').forEach((c) => c.classList.remove('active'));
     }
@@ -1165,8 +1206,14 @@
             dom.confirmOverlay.classList.remove('show');
             if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
         });
-    }
 
+        // Logo click -> Overview
+        const brand = $('.sidebar-brand');
+        if (brand) {
+            brand.style.cursor = 'pointer';
+            brand.addEventListener('click', closeEditor);
+        }
+    }
 
     // ===== Init =====
 
