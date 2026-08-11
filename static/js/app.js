@@ -370,13 +370,15 @@
 
         state.notes.forEach((note) => {
             const el = renderNoteItem(note);
-            const elAll = renderNoteItem(note);
 
-            const allNotesContainer = document.getElementById('notes-all');
-            if (allNotesContainer) allNotesContainer.appendChild(elAll);
             allCount++;
             
-            if (note.is_pinned) pinnedCount++;
+            if (note.is_pinned) {
+                const elPinned = renderNoteItem(note);
+                const pinnedContainer = document.getElementById('notes-pinned');
+                if (pinnedContainer) pinnedContainer.appendChild(elPinned);
+                pinnedCount++;
+            }
 
             if (note.is_archived) {
                 const archivedContainer = document.getElementById('notes-archived');
@@ -1158,7 +1160,7 @@
         });
 
         // Quick filters (Toggle collapse)
-        ['all', 'uncategorized', 'archived'].forEach(id => {
+        ['pinned', 'uncategorized', 'archived'].forEach(id => {
             const el = document.getElementById(`filter-${id}`);
             if (el) {
                 el.addEventListener('click', (e) => {
