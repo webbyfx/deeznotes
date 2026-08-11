@@ -603,7 +603,19 @@
 
     function initQuill() {
         const icons = Quill.import('ui/icons');
-        icons['table'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>';
+        icons['table'] = '<svg viewBox="0 0 24 24"><rect class="ql-stroke" x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line class="ql-stroke" x1="3" y1="9" x2="21" y2="9"></line><line class="ql-stroke" x1="3" y1="15" x2="21" y2="15"></line><line class="ql-stroke" x1="9" y1="3" x2="9" y2="21"></line><line class="ql-stroke" x1="15" y1="3" x2="15" y2="21"></line></svg>';
+
+        try {
+            const BaseStyle = Quill.import('attributors/style') || (Quill.import('parchment') && Quill.import('parchment').Attributor && Quill.import('parchment').Attributor.Style);
+            if (BaseStyle) {
+                const WidthStyle = new BaseStyle('width', 'width', { scope: 3 }); // 3 = ANY
+                const MinWidthStyle = new BaseStyle('min-width', 'min-width', { scope: 3 });
+                Quill.register(WidthStyle, true);
+                Quill.register(MinWidthStyle, true);
+            }
+        } catch(e) {
+            console.warn('Could not register width styles in Quill', e);
+        }
 
         state.quill = new Quill('#quill-editor', {
             theme: 'snow',
@@ -1302,20 +1314,33 @@
         addRowBtn.className = 'table-hover-btn';
         addRowBtn.innerHTML = '+ Row';
         
+        const colResizer = document.createElement('div');
+        colResizer.className = 'col-resizer';
+        
+        const tableResizer = document.createElement('div');
+        tableResizer.className = 'table-resizer';
+        
         document.body.appendChild(addColBtn);
         document.body.appendChild(addRowBtn);
+        document.body.appendChild(colResizer);
+        document.body.appendChild(tableResizer);
         
         let hideTimeout = null;
         let lastHoveredCell = null;
         let currentTable = null;
+        let isDragging = false;
         
         const hideBtns = () => {
+            if (isDragging) return;
             addColBtn.style.display = 'none';
             addRowBtn.style.display = 'none';
+            colResizer.style.display = 'none';
+            tableResizer.style.display = 'none';
             currentTable = null;
         };
         
         editor.addEventListener('mousemove', (e) => {
+            if (isDragging) return;
             const td = e.target.closest('td, th');
             if (td) {
                 const table = td.closest('table');
@@ -1325,6 +1350,7 @@
                     clearTimeout(hideTimeout);
                     
                     const rect = table.getBoundingClientRect();
+                    const tdRect = td.getBoundingClientRect();
                     
                     addColBtn.style.display = 'block';
                     addColBtn.style.top = (rect.top + window.scrollY - 30) + 'px';
@@ -1333,17 +1359,94 @@
                     addRowBtn.style.display = 'block';
                     addRowBtn.style.top = (rect.bottom + window.scrollY + 5) + 'px';
                     addRowBtn.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
+                    
+                    colResizer.style.display = 'block';
+                    colResizer.style.top = (tdRect.top + window.scrollY) + 'px';
+                    colResizer.style.left = (tdRect.right + window.scrollX) + 'px';
+                    colResizer.style.height = tdRect.height + 'px';
+                    
+                    tableResizer.style.display = 'block';
+                    tableResizer.style.top = (rect.bottom + window.scrollY) + 'px';
+                    tableResizer.style.left = (rect.right + window.scrollX) + 'px';
                 }
             } else {
                 hideTimeout = setTimeout(hideBtns, 200);
             }
         });
         
-        [addColBtn, addRowBtn].forEach(btn => {
-            btn.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
-            btn.addEventListener('mouseleave', () => hideTimeout = setTimeout(hideBtns, 200));
-            btn.addEventListener('mousedown', (e) => e.preventDefault());
+        [addColBtn, addRowBtn, colResizer, tableResizer].forEach(el => {
+            el.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+            el.addEventListener('mouseleave', () => {
+                if (!isDragging) hideTimeout = setTimeout(hideBtns, 200);
+            });
+            if (el === addColBtn || el === addRowBtn) {
+                el.addEventListener('mousedown', (e) => e.preventDefault());
+            }
         });
+        
+        // Drag Resizing Logic
+        let startX, startWidth, targetElement;
+        
+        colResizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            colResizer.classList.add('dragging');
+            
+            const tr = lastHoveredCell.parentElement;
+            const colIndex = Array.from(tr.children).indexOf(lastHoveredCell);
+            const table = lastHoveredCell.closest('table');
+            targetElement = table.querySelector('tr').children[colIndex];
+            
+            startX = e.clientX;
+            startWidth = targetElement.getBoundingClientRect().width;
+            
+            document.addEventListener('mousemove', onColMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+        
+        tableResizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            tableResizer.classList.add('dragging');
+            targetElement = currentTable;
+            startX = e.clientX;
+            startWidth = targetElement.getBoundingClientRect().width;
+            
+            document.addEventListener('mousemove', onTableMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+        
+        function onColMouseMove(e) {
+            if (!isDragging) return;
+            const diff = e.clientX - startX;
+            let newWidth = Math.max(30, startWidth + diff);
+            targetElement.style.width = newWidth + 'px';
+            targetElement.style.minWidth = newWidth + 'px';
+            
+            const tdRect = lastHoveredCell.getBoundingClientRect();
+            colResizer.style.left = (tdRect.right + window.scrollX) + 'px';
+        }
+        
+        function onTableMouseMove(e) {
+            if (!isDragging) return;
+            const diffX = e.clientX - startX;
+            let newWidth = Math.max(100, startWidth + diffX);
+            targetElement.style.width = newWidth + 'px';
+            
+            const rect = targetElement.getBoundingClientRect();
+            tableResizer.style.left = (rect.right + window.scrollX) + 'px';
+            tableResizer.style.top = (rect.bottom + window.scrollY) + 'px';
+        }
+        
+        function onMouseUp(e) {
+            isDragging = false;
+            colResizer.classList.remove('dragging');
+            tableResizer.classList.remove('dragging');
+            document.removeEventListener('mousemove', onColMouseMove);
+            document.removeEventListener('mousemove', onTableMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            if (typeof scheduleSave === 'function') scheduleSave();
+        }
         
         addColBtn.addEventListener('click', () => {
             if (lastHoveredCell) {

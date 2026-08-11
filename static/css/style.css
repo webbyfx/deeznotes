@@ -1795,3 +1795,36 @@ input[type="password"]::placeholder {
     box-shadow: 0 0 20px var(--accent-glow);
     transform: translateX(-50%) scale(1.05);
 }
+
+/* Table Resizers */
+.col-resizer {
+    position: absolute;
+    width: 8px;
+    background: var(--accent);
+    cursor: col-resize;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s;
+    transform: translateX(-50%);
+    box-shadow: 0 0 5px var(--accent-glow);
+}
+.col-resizer:hover, .col-resizer.dragging {
+    opacity: 1;
+}
+
+.table-resizer {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: nwse-resize;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+.table-resizer:hover, .table-resizer.dragging {
+    opacity: 1;
+}
