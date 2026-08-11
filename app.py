@@ -27,7 +27,7 @@ def create_app():
 
     @app.context_processor
     def inject_version():
-        return dict(app_version=app.config.get('APP_VERSION', '1.0.0'))
+        return dict(app_version=app.config.get('APP_VERSION', '1.0.1'))
 
     return app
 
