@@ -602,10 +602,14 @@
     // ===== Initialize Quill Editor =====
 
     function initQuill() {
+        const icons = Quill.import('ui/icons');
+        icons['table'] = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>';
+
         state.quill = new Quill('#quill-editor', {
             theme: 'snow',
             placeholder: 'Start writing your note…',
             modules: {
+                table: true,
                 syntax: {
                     hljs: window.hljs,
                     languages: [
@@ -644,11 +648,16 @@
                         [{ color: [] }, { background: [] }],
                         [{ list: 'ordered' }, { list: 'bullet' }],
                         ['blockquote', 'code-block'],
-                        ['link', 'image'],
+                        ['link', 'image', 'table'],
                         [{ align: [] }],
                         ['clean'],
                     ],
                     handlers: {
+                        table: function() {
+                            const toolbar = this.quill.getModule('toolbar');
+                            const tableButton = toolbar.container.querySelector('.ql-table');
+                            toggleTableSelector(tableButton, this.quill);
+                        },
                         // Override toolbar image button to use our upload flow
                         image: function () {
                             const input = document.createElement('input');
@@ -705,6 +714,8 @@
 
         // ── Image resize & reposition system ──
         initImageResize();
+
+        setupTableHoverUI(state.quill);
     }
 
     async function uploadImage(file) {
@@ -1213,6 +1224,179 @@
             brand.style.cursor = 'pointer';
             brand.addEventListener('click', closeEditor);
         }
+    }
+
+    // ===== Table Support UI =====
+    function toggleTableSelector(button, quill) {
+        let selector = document.getElementById('quill-table-selector');
+        if (!selector) {
+            selector = document.createElement('div');
+            selector.id = 'quill-table-selector';
+            selector.className = 'quill-table-selector';
+            document.body.appendChild(selector);
+
+            for (let r = 1; r <= 3; r++) {
+                const row = document.createElement('div');
+                row.className = 'table-selector-row';
+                for (let c = 1; c <= 3; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'table-selector-cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    
+                    cell.addEventListener('mouseenter', () => {
+                        const allCells = selector.querySelectorAll('.table-selector-cell');
+                        allCells.forEach(el => {
+                            if (parseInt(el.dataset.row) <= r && parseInt(el.dataset.col) <= c) {
+                                el.classList.add('active');
+                            } else {
+                                el.classList.remove('active');
+                            }
+                        });
+                    });
+                    
+                    cell.addEventListener('mousedown', (e) => e.preventDefault());
+                    cell.addEventListener('click', () => {
+                        const index = parseInt(selector.dataset.index || quill.getLength() - 1);
+                        quill.setSelection(index, 0);
+                        quill.focus();
+                        setTimeout(() => {
+                            const tableModule = quill.getModule('table');
+                            tableModule.insertTable(r, c);
+                        }, 10);
+                        selector.classList.remove('show');
+                    });
+                    
+                    row.appendChild(cell);
+                }
+                selector.appendChild(row);
+            }
+
+            document.addEventListener('click', (e) => {
+                if (!selector.contains(e.target) && !button.contains(e.target)) {
+                    selector.classList.remove('show');
+                }
+            });
+        }
+
+        if (selector.classList.contains('show')) {
+            selector.classList.remove('show');
+        } else {
+            const sel = quill.getSelection();
+            selector.dataset.index = sel ? sel.index : (quill.getLength() - 1);
+
+            const rect = button.getBoundingClientRect();
+            selector.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            selector.style.left = (rect.left + window.scrollX) + 'px';
+            selector.classList.add('show');
+        }
+    }
+
+    function setupTableHoverUI(quill) {
+        const editor = quill.root;
+        const addColBtn = document.createElement('button');
+        addColBtn.className = 'table-hover-btn';
+        addColBtn.innerHTML = '+ Col';
+        
+        const addRowBtn = document.createElement('button');
+        addRowBtn.className = 'table-hover-btn';
+        addRowBtn.innerHTML = '+ Row';
+        
+        document.body.appendChild(addColBtn);
+        document.body.appendChild(addRowBtn);
+        
+        let hideTimeout = null;
+        let lastHoveredCell = null;
+        let currentTable = null;
+        
+        const hideBtns = () => {
+            addColBtn.style.display = 'none';
+            addRowBtn.style.display = 'none';
+            currentTable = null;
+        };
+        
+        editor.addEventListener('mousemove', (e) => {
+            const td = e.target.closest('td, th');
+            if (td) {
+                const table = td.closest('table');
+                if (table) {
+                    currentTable = table;
+                    lastHoveredCell = td;
+                    clearTimeout(hideTimeout);
+                    
+                    const rect = table.getBoundingClientRect();
+                    
+                    addColBtn.style.display = 'block';
+                    addColBtn.style.top = (rect.top + window.scrollY - 30) + 'px';
+                    addColBtn.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
+                    
+                    addRowBtn.style.display = 'block';
+                    addRowBtn.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+                    addRowBtn.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
+                }
+            } else {
+                hideTimeout = setTimeout(hideBtns, 200);
+            }
+        });
+        
+        [addColBtn, addRowBtn].forEach(btn => {
+            btn.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+            btn.addEventListener('mouseleave', () => hideTimeout = setTimeout(hideBtns, 200));
+            btn.addEventListener('mousedown', (e) => e.preventDefault());
+        });
+        
+        addColBtn.addEventListener('click', () => {
+            if (lastHoveredCell) {
+                const blot = Quill.find(lastHoveredCell);
+                if (blot) {
+                    const index = quill.getIndex(blot);
+                    quill.setSelection(index, 0);
+                    quill.focus();
+                    setTimeout(() => {
+                        quill.getModule('table').insertColumnRight();
+                    }, 10);
+                } else {
+                    // Fallback
+                    quill.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(lastHoveredCell);
+                    range.collapse(true);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    quill.updateSelection(Quill.sources.USER);
+                    setTimeout(() => {
+                        quill.getModule('table').insertColumnRight();
+                    }, 10);
+                }
+            }
+        });
+        
+        addRowBtn.addEventListener('click', () => {
+            if (lastHoveredCell) {
+                const blot = Quill.find(lastHoveredCell);
+                if (blot) {
+                    const index = quill.getIndex(blot);
+                    quill.setSelection(index, 0);
+                    quill.focus();
+                    setTimeout(() => {
+                        quill.getModule('table').insertRowBelow();
+                    }, 10);
+                } else {
+                    quill.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(lastHoveredCell);
+                    range.collapse(true);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    quill.updateSelection(Quill.sources.USER);
+                    setTimeout(() => {
+                        quill.getModule('table').insertRowBelow();
+                    }, 10);
+                }
+            }
+        });
     }
 
     // ===== Init =====
