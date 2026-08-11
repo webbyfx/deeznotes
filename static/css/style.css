@@ -1709,3 +1709,122 @@ input[type="password"]::placeholder {
     to { transform: rotate(360deg); }
 }
 
+/* Table Styles */
+.ql-editor table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5rem 0;
+    table-layout: fixed;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    border: 2px solid var(--accent-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border-spacing: 0;
+    transition: box-shadow var(--transition);
+}
+
+.ql-editor table:hover {
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.7);
+}
+
+.ql-editor table td, .ql-editor table th {
+    border: 1px solid var(--accent-light);
+    padding: 10px 15px;
+    position: relative;
+    min-width: 50px;
+}
+
+/* 3x3 Table Selector */
+.quill-table-selector {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    box-shadow: var(--shadow-lg);
+    display: none;
+    z-index: 9999;
+}
+
+.quill-table-selector.show {
+    display: block;
+}
+
+.table-selector-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.table-selector-row:last-child {
+    margin-bottom: 0;
+}
+
+.table-selector-cell {
+    width: 25px;
+    height: 25px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.table-selector-cell.active {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Hover Buttons */
+.table-hover-btn {
+    position: absolute;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-glow);
+    display: none;
+    z-index: 1000;
+    transition: all var(--transition);
+    transform: translateX(-50%);
+}
+.table-hover-btn:hover {
+    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translateX(-50%) scale(1.05);
+}
+
+/* Table Resizers */
+.col-resizer {
+    position: absolute;
+    width: 8px;
+    background: var(--accent);
+    cursor: col-resize;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s;
+    transform: translateX(-50%);
+    box-shadow: 0 0 5px var(--accent-glow);
+}
+.col-resizer:hover, .col-resizer.dragging {
+    opacity: 1;
+}
+
+.table-resizer {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: nwse-resize;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+.table-resizer:hover, .table-resizer.dragging {
+    opacity: 1;
+}
