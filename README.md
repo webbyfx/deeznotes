@@ -29,7 +29,7 @@ The easiest way to get DeezNotes up and running is by using Docker and Docker Co
 
 1. **Clone the repository** (if you haven't already):
    ```bash
-   git clone https://github.com/yourusername/deeznotes.git
+   git clone https://github.com/webbyfx/deeznotes.git
    cd deeznotes
    ```
 
